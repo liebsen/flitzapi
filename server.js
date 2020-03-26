@@ -371,6 +371,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         console.log(data.code + " joins. mode: " + (data.observe ? '👁️' : '👤'))
         playersIdle.push({
           code: data.code,
+          flag: data.flag,
           socket:socket.id,
           observe: data.observe
         })
