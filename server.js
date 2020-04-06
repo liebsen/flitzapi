@@ -86,6 +86,9 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     const doc = {      
       white: req.body.white,
       black: req.body.black,
+      whiteflag: req.body.whiteflag,
+      blackflag: req.body.blackflag,
+      result: req.body.result,
       event: 'Online game',
       site: 'Biltz',
       date: moment().format('YYYY.MM.DD HH:mm'),
