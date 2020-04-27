@@ -5,7 +5,7 @@ var path = require('path');
 var app = express();
 var cors = require('cors');
 var http = require('http').Server(app);
-var io = require('socket.io')(http, { origins: '*:*'});
+var io = require('socket.io')(http, { origins: '*:*', pingInterval: 15000});
 var moment = require('moment');
 var mongodb = require('mongodb');
 var expressLayouts = require('express-ejs-layouts')
@@ -17,11 +17,9 @@ var matchesLive = []
 var movecompensation = 2
 var ObjectId = require('mongodb').ObjectId
 var allowedOrigins = [
-  'http://0.0.0.0:8000',
-  'http://192.168.2.13:8000',
-  'https://ajedrezenvivo.net',
-  'https://biltz.herokuapp.com',
-  'https://ajedrezenvivo.herokuapp.com'
+  'http://localhost:8080',
+  'http://192.168.2.13:8080',
+  'https://biltz.herokuapp.com'
 ]
 
 const mongo_url = process.env.MONGO_URL;
@@ -273,6 +271,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
   app.post('/group/random', function (req, res) { 
     db.collection('groups').aggregate([
       { "$match" : { "broadcast": true } },
+      { "$project" : { code: 1, games: 1, minutes: 1, compensation: 1 } },
       {
         "$redact": {
             "$cond": [
@@ -284,10 +283,10 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
             ]
         }
       },
-      { $sample: { size: 1 } }
+      { $sample: { size: 9 } }
       ]).toArray(function(err,docs) {
         if (docs) {
-          return res.json({ status: 'success', data: docs[0] })
+          return res.json({ status: 'success', data: docs })
         } else {
           return res.json({ status: 'error' })
         }
@@ -399,6 +398,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
   })
 
   io.on('connection', function(socket){ //join group on connect
+
     socket.on('disconnect', function() {
       console.log("disconnect")
       for (var i = 0; i < groups.length; i++ ) {
