@@ -1,4 +1,12 @@
 {
+  "showing_results": "Showing results ",
+  "of": "of",
+  "game": "Game",
+  "games": "Games",
+  "results_found": "We found ",
+  "results_nomatch": "No matches found",
+  "results_toast": "You can search by event, site, player and/or PGN.",
+  "goto_page": "Go to page",
   "latency": "Latency",
   "search_in_groups": "Search in groups",
   "stockfish_options": "Stockfish Options",

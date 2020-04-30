@@ -1,4 +1,12 @@
 {
+  "showing_results": "Mostrando resultados ",
+  "of": "de",
+  "game": "Partida",
+  "games": "Partidas",
+  "results_found": "Se encontraron ",
+  "results_nomatch": "No hay partidas que coincidan con tu palabra clave",
+  "results_toast": "Podés buscar por evento, lugar, jugador o PGN.",
+  "goto_page": "Ir a página",
   "latency": "Latencia",
   "search_in_groups": "Buscar en grupos",
   "stockfish_options": "Opciones de Stockfish",

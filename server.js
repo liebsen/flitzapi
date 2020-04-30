@@ -133,6 +133,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       date: moment().format('YYYY.MM.DD HH:mm'),
       white: req.body.white,
       black: req.body.black,
+      result: req.body.result,
       whiteflag: req.body.whiteflag,
       blackflag: req.body.blackflag,
       score: req.body.score,
