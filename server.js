@@ -1,7 +1,6 @@
 const fs = require('fs')
 var express = require('express');
 var path = require('path');
-//var sslredirect = require('./node-heroku-ssl-redirect');
 var app = express();
 var cors = require('cors');
 var http = require('http').Server(app);
@@ -10,19 +9,19 @@ var moment = require('moment');
 var mongodb = require('mongodb');
 var expressLayouts = require('express-ejs-layouts')
 var bodyParser = require('body-parser')
+var EloRating = require('elo-rating')
 var onlinewhen = moment().utc().subtract(10, 'minutes')
 var gamesort = {date:-1}
 var groups = {}
 var matchesLive = []
 var movecompensation = 2
 var ObjectId = require('mongodb').ObjectId
+const mongo_url = process.env.MONGO_URL;
 var allowedOrigins = [
   'http://localhost:8080',
   'http://192.168.2.13:8080',
   'https://biltz.herokuapp.com'
 ]
-
-const mongo_url = process.env.MONGO_URL;
 
 app.use(cors({
   origin: function(origin, callback){
@@ -404,7 +403,6 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       for (var i = 0; i < groups.length; i++ ) {
         for (var j = 0; j < groups[i].length; j++ ){
           const player = groups[i][j]
-          console.log(`${player.code} is in group ${groups[i].code}`)
           if(player.socket === socket.id){
             console.log(`${player.code} leaves group: ${groups[i].code}`)
             groups[i].splice(j, 1)
@@ -550,8 +548,8 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         $push_query.push({
           id: match_id,
           score: {
-            [white]: [],
-            [black]: []
+            [white.code]: [],
+            [black.code]: []
           }
         })
 
@@ -567,11 +565,12 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           'new': true, 
           returnOriginal:false 
         }).then(function(doc){
-
           const game = {      
             event: event,
             white: white.code,
             black: black.code,
+            whiteelo: white.elo,
+            blackelo: black.elo,
             whiteflag: white.flag,
             blackflag: black.flag,
             minutes: item.minutes,
@@ -611,11 +610,13 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       }
 
       if(!groups[id].players[data.player.code]) {
-        socket.join(id)
         groups[id].players[data.player.code] = data.player
-        io.to(id).emit("group_join", data.player)
         console.log(`${data.player.code} joins ${id}`)
       }
+
+      groups[id].players[data.player.code].plying = false
+      socket.join(id)
+      io.to(id).emit("group_join", data.player)
 
       let players = []
       for (var i in groups[id].players) {
@@ -632,9 +633,9 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
       if (groups[id]) {
         if (groups[id].players[data.player.code]) {
-          delete groups[id].players[data.player.code]
+          groups[id].players[data.player.code].plying = true
           io.to(id).emit("group_leave", data.player)
-          console.log(`${data.player.code} leaves ${id}`)
+          console.log(`${data.player.code} leaves ${id} (now playing)`)
         }
         for (var i in groups[id].players) {
           players.push(groups[id].players[i])
@@ -715,8 +716,25 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       }
 
       var id = data.id
-      item.updatedAt = moment().utc().format()      
+      item.updatedAt = moment().utc().format()
+
       delete item.id 
+      
+      if (data.result && data.result !== '1/2-1/2') {
+        var playerWin = data.result === '1-0'
+        var elo = EloRating.calculate(data.whiteelo, data.blackelo, playerWin)
+        item.whiteelo = elo.playerRating
+        item.blackelo = elo.opponentRating
+
+        if (groups[data.group]) {
+          if (groups[data.group].players[item.white]) {
+            groups[data.group].players[item.white].elo = item.whiteelo
+          }
+          if (groups[data.group].players[item.black]) {
+            groups[data.group].players[item.black].elo = item.blackelo
+          }
+        }
+      }
 
       return db.collection('games').findOneAndUpdate(
       {
@@ -731,8 +749,8 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         returnOriginal:false 
       }).then(function(doc){
         // io.to(id).emit('data', data)
-        
-        io.to(id).emit('game_updated', doc.value)
+        let game = doc.value
+        io.to(id).emit('game_updated', game)
 
         if (data.result) {
           for (var i = 0; i < matchesLive.length; i++) {

@@ -9,6 +9,7 @@
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
     "ejs": "^2.6.1",
+    "elo-rating": "^1.0.1",
     "express": "^4.16.4",
     "express-ejs-layouts": "^2.5.0",
     "heroku-ssl-redirect": "0.0.4",
