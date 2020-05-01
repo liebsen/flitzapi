@@ -66,6 +66,8 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       compensation: req.body.compensation,
       date: moment().utc().format('YYYY.MM.DD HH:mm'),
       broadcast: true,
+      chat: [],
+      results: [],
       users: 1
     }
 
@@ -76,6 +78,29 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       } else {
         return res.json({ status: 'success', data: response.ops[0]})
       }
+    })
+  })
+
+
+  app.get('/test', function (req, res) {
+    let data = {
+      game: 'aaaa',
+      white: 'white',
+      score: '1'
+    }
+    let $push_query = []
+    $push_query.push(data)
+    db.collection('groups').findOneAndUpdate(
+    {
+      '_id': new ObjectId('5eac96b9e527116c43355408')
+    }, {
+      "$push": { results: { '5eac' : { "$each" : $push_query } }  }
+    }, {
+      upsert: true, 
+      'new': true, 
+      returnOriginal:false 
+    }).then(function(doc){
+      return res.json('ok')
     })
   })
 
@@ -130,6 +155,8 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       black: req.body.black,
       whiteflag: req.body.whiteflag,
       blackflag: req.body.blackflag,
+      whiteelo: req.body.whiteelo,
+      blackelo: req.body.blackelo,
       minutes: req.body.minutes,
       games: req.body.games,
       game: req.body.game,
@@ -487,23 +514,26 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
     socket.on('group_chat', function(data) { //move object emitter
       let id = data.id 
-      let $push_query = []
+      
       data.created = new Date()
       delete data.id 
 
-      $push_query.push(data)
-      db.collection('groups').findOneAndUpdate(
-      {
-        _id : new ObjectId(id)
-      },
-      {
-        "$push" : { "chat": { "$each" : $push_query } }
-      },
-      { 
-        upsert: true, 
-        'new': true, 
-        returnOriginal:false 
-      })
+      if (data.sender !== 'bot') {
+        let $push_query = []
+        $push_query.push(data)
+        db.collection('groups').findOneAndUpdate(
+        {
+          _id : new ObjectId(id)
+        },
+        {
+          "$push" : { "chat": { "$each" : $push_query } }
+        },
+        { 
+          upsert: true, 
+          'new': true, 
+          returnOriginal:false 
+        })
+      }
 
       io.to(id).emit('group_chat', data)
     })
@@ -551,9 +581,9 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       }
 
       if (item._id) {
-        var white = item.player
-        var black = data.player
-
+        let white = item.player
+        let black = data.player
+        let match_id = new ObjectId().toString()
         const coin = Math.floor(Math.random() * 1)
 
         if(coin){
@@ -561,59 +591,36 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           black = item.player
         }
 
-        let match_id = new ObjectId().toString()
-        let $push_query = []  
-        $push_query.push({
-          id: match_id,
-          score: {
-            [white.code]: [],
-            [black.code]: []
-          }
-        })
+        const game = {      
+          event: event,
+          white: white.code,
+          black: black.code,
+          whiteelo: white.elo,
+          blackelo: black.elo,
+          whiteflag: white.flag,
+          blackflag: black.flag,
+          minutes: item.minutes,
+          games: item.games,
+          game: 1,
+          group: item._id,
+          compensation: item.compensation,
+          date:moment().utc().format('YYYY.MM.DD HH:mm'),
+          broadcast: true,
+          views: 0
+        }
 
-        db.collection('groups').findOneAndUpdate(
-        {
-          '_id': new ObjectId(item._id)
-        },
-        {
-          "$push": { "matches" : $push_query }
-        },
-        { 
-          upsert: true, 
-          'new': true, 
-          returnOriginal:false 
-        }).then(function(doc){
-          const game = {      
-            event: event,
-            white: white.code,
-            black: black.code,
-            whiteelo: white.elo,
-            blackelo: black.elo,
-            whiteflag: white.flag,
-            blackflag: black.flag,
-            minutes: item.minutes,
-            games: item.games,
-            game: 1,
-            group: item._id,
-            compensation: item.compensation,
-            date:moment().utc().format('YYYY.MM.DD HH:mm'),
-            broadcast: true,
-            views: 0
+        db.collection('games').insertOne(game,function (err, response) {
+          if(err){ 
+            io.emit('opponent_not_found') 
+          } else {
+            io.emit('game_spawn', {
+              group: item._id,
+              match: match_id,
+              white: white.code,
+              black: black.code,
+              game: response.ops[0]._id
+            })
           }
-
-          db.collection('games').insertOne(game,function (err, response) {
-            if(err){ 
-              io.emit('opponent_not_found') 
-            } else {
-              io.emit('game_spawn', {
-                group: item._id,
-                match: match_id,
-                white: white.code,
-                black: black.code,
-                game: response.ops[0]._id
-              })
-            }
-          })
         })
       } else {
         io.emit('opponent_not_found') 
@@ -637,20 +644,13 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       groups[id].players[data.player._id].plying = false
       socket.join(id)
       io.to(id).emit("group_join", data.player)
-
-      let players = []
-      for (var i in groups[id].players) {
-        players.push(groups[id].players[i])
-      }
-
-      io.to(id).emit('players', players)
-
-      return db.collection('games').findOneAndUpdate(
+      io.to(id).emit('players', groups[id].players)
+      return db.collection('groups').findOneAndUpdate(
       {
         '_id': new ObjectId(id)
       },
       {
-        "$set": { users: players.length }
+        "$set": { users: Object.keys(groups[id].players).length }
       })
     })
 
@@ -664,15 +664,13 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           console.log(`${data.player.code} leaves ${groups[id].code}`)
         }
 
-        let players = groups[id].players
-        io.to(id).emit('players', players)
-
-        return db.collection('games').findOneAndUpdate(
+        io.to(id).emit('players', groups[id].players)
+        return db.collection('groups').findOneAndUpdate(
         {
           '_id': new ObjectId(id)
         },
         {
-          "$set": { users: players.length }
+          "$set": { users: Object.keys(groups[id].players).length }
         })
       }
     })
@@ -741,9 +739,15 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
       if (data.result && data.result !== '1/2-1/2') {
         var playerWin = data.result === '1-0'
-        var elo = EloRating.calculate(data.whiteelo, data.blackelo, playerWin)
-        data.whiteelo = elo.playerRating
-        data.blackelo = elo.opponentRating
+
+        console.log('whiteelo: ' + data.whiteelo)
+        console.log('blackelo: ' + data.blackelo)
+
+        if (data.whiteelo && data.blackelo) {
+          var elo = EloRating.calculate(data.whiteelo, data.blackelo, playerWin)
+          data.whiteelo = elo.playerRating
+          data.blackelo = elo.opponentRating
+        }
 
         if (groups[data.group]) {
           if (groups[data.group].players[data.white]) {
@@ -772,28 +776,40 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         io.to(id).emit('game_updated', game)
 
         if (data.result) {
-          io.emit('games', games.filter(e => { return e._id !== id }))
+          io.emit('games', Object.keys(games).filter((e, i) => { return i !== id }))
         }
       })
     })
 
     socket.on('group', function(data) { //channel object emitter
-      var item = {}
-      for(var i in data){
-        item[i] = data[i]
-      }
-
-      var id = data.id
-      item.updatedAt = moment().utc().format()      
-      delete item.id 
-
+      var id = data._id
+      data.updatedAt = moment().utc().format()      
+      delete data._id
       return db.collection('groups').findOneAndUpdate(
       {
         '_id': new ObjectId(id)
-      },
+      }, {
+        "$set": data
+      }, {
+        upsert: true, 
+        'new': true, 
+        returnOriginal:false 
+      }).then(function(doc){
+        io.to(id).emit('group_updated', doc.value)
+      })
+    })
+
+    socket.on('group_result', function(data) { //channel object emitter
+      var id = data._id
+      data.updatedAt = moment().utc().format()      
+      let $push_query = []
+      $push_query.push(data.result)
+      return db.collection('groups').findOneAndUpdate(
       {
-        "$set": item
-      },{ 
+        '_id': new ObjectId(id)
+      }, {
+        "$push" : { "results": { "$each" : $push_query } }
+      }, {
         upsert: true, 
         'new': true, 
         returnOriginal:false 
@@ -802,6 +818,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       })
     })
   })
+
 
   let port = process.env.PORT||4000
   var server = http.listen(port, function () { //run http and web socket server
