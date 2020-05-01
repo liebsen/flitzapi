@@ -13,7 +13,7 @@ var EloRating = require('elo-rating')
 var onlinewhen = moment().utc().subtract(10, 'minutes')
 var gamesort = {date:-1}
 var groups = {}
-var matchesLive = []
+var games = {}
 var movecompensation = 2
 var ObjectId = require('mongodb').ObjectId
 const mongo_url = process.env.MONGO_URL;
@@ -77,6 +77,28 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         return res.json({ status: 'success', data: response.ops[0]})
       }
     })
+  })
+
+  app.post('/account', function (req, res) { 
+    var id = req.body._id
+    delete req.body._id
+    req.body.updatedAt = moment().utc().format()      
+    return db.collection('accounts').findOneAndUpdate(
+      {
+        '_id': new ObjectId(id)
+      },
+      {
+        "$set": req.body
+      },
+      { 
+        upsert: true, 
+        'new': true, 
+        returnOriginal:false 
+      }).then(function(doc){
+        return res.json({ status: 'success', data: doc.value})
+        //io.emit('group_changed', match)
+      }
+    )
   })
 
   app.post('/group/update', function (req, res) { 
@@ -271,7 +293,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
   app.post('/group/random', function (req, res) { 
     db.collection('groups').aggregate([
       { "$match" : { "broadcast": true } },
-      { "$project" : { code: 1, games: 1, minutes: 1, compensation: 1 } },
+      { "$project" : { code: 1, games: 1, minutes: 1, compensation: 1, users: 1 } },
       {
         "$redact": {
             "$cond": [
@@ -398,27 +420,45 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
   })
 
   io.on('connection', function(socket){ //join group on connect
-
     socket.on('disconnect', function() {
       console.log("disconnect")
-      for (var i = 0; i < groups.length; i++ ) {
-        for (var j = 0; j < groups[i].length; j++ ){
+      for (var i in groups) {
+        for (var j in groups[i]){
           const player = groups[i][j]
           if(player.socket === socket.id){
             console.log(`${player.code} leaves group: ${groups[i].code}`)
-            groups[i].splice(j, 1)
-            io.to(groups[i].code).emit('players', groups[i])
+            delete groups[i][j]
+            io.to(i).emit('players', groups[i])
           }
         }        
       }      
     })
 
-    socket.on('join', function(id) {
-      socket.join(id)
+    socket.on('join', function(data) {
+      if (data.game) {
+        socket.join(data.game._id)
+        if(!games[data.game._id]){
+          games[data.game._id] = data
+          console.log(data.game._id + " game ready to start")
+        }
+
+        // io.emit('games', games)
+
+        for(var i in groups){
+          console.log('c')
+          for(var j in groups[i].players) {
+            if (groups[i].players[j]._id === data.player._id) {
+              groups[i].players[j].plying = true
+              io.emit('joined', groups[i].players[j])
+              io.to(i).emit('players', groups[i].players)
+            }
+          }
+        }
+      }
     })
 
-    socket.on('leave', function(id) {
-      socket.leave(id)
+    socket.on('leave', function(data) {
+      socket.leave(data)
     })
 
     socket.on('reject', function(data) {
@@ -470,37 +510,15 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
     socket.on('preferences', function(data) {
       var exists = false
-      for(var i = 0; i < groups.length; i++ ){
-        if(groups[i].code === data.code && groups[i].socket != socket.id){
-          exists = true
+      db.collection('accounts').find({
+        code: data.code
+      }).toArray(function(err,docs){
+        data.exists = false
+        if (docs) {
+          data.exists = true
         }
-      }
-      data.exists = exists
-      io.emit('player', data)
-    })
-
-    socket.on('match_start', function(data) {
-      var exists = false
-      for(var i = 0; i < matchesLive.length; i++ ){
-        if(matchesLive[i].id === data.id || matchesLive[i].white === data.white && matchesLive[i].black === data.black){
-          exists = true
-        }
-      }
-      if(exists === false){
-        console.log(data.id + " match started")
-        matchesLive.push(data)
-      }
-      io.emit('matches_live', matchesLive)
-    })
-
-    socket.on('match_end', function(data) {
-      for(var i = 0; i < matchesLive.length; i++ ){
-        if(matchesLive[i].id === data.id){
-          console.log(data.id + " match ends")
-          matchesLive.splice(i, 1)
-        }
-      }
-      io.emit('matches_live', matchesLive)
+        io.emit('player', data)
+      })
     })
 
     socket.on('find_opponent', function (data) { 
@@ -510,7 +528,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       if (groups[id]) {
         Object.keys(groups[id].players).forEach(i => {
           let player = groups[id].players[i]
-          if (player.code !== data.player.code && !player.plying) {
+          if (player.code !== data.player.code && !player.plying && !player.observe) {
             console.log('found group game')
             event = groups[id].code
             item = groups[id]
@@ -521,12 +539,11 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
       if (!item._id) {
         Object.keys(groups).forEach(i => {
-          let g = groups[i]
-          Object.keys(g.players).forEach(j => {
-            let player = g.players[j]
-            if (player.code !== data.player.code && player.autoaccept && !player.plying) {
+          Object.keys(groups[i].players).forEach(j => {
+            let player = groups[i].players[j]
+            if (player.code !== data.player.code && player.autoaccept && !player.observe && !player.plying) {
               console.log('found outside game')
-              item = g
+              item = groups[i]
               item.player = player
             }
           })
@@ -591,6 +608,8 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
               io.emit('game_spawn', {
                 group: item._id,
                 match: match_id,
+                white: white.code,
+                black: black.code,
                 game: response.ops[0]._id
               })
             }
@@ -610,12 +629,12 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         groups[id].players = {}
       }
 
-      if(!groups[id].players[data.player.code]) {
-        groups[id].players[data.player.code] = data.player
-        console.log(`${data.player.code} joins ${id}`)
+      if(!groups[id].players[data.player._id]) {
+        groups[id].players[data.player._id] = data.player
+        console.log(`${data.player.code} joins ${groups[id].code}`)
       }
 
-      groups[id].players[data.player.code].plying = false
+      groups[id].players[data.player._id].plying = false
       socket.join(id)
       io.to(id).emit("group_join", data.player)
 
@@ -625,25 +644,37 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       }
 
       io.to(id).emit('players', players)
+
+      return db.collection('games').findOneAndUpdate(
+      {
+        '_id': new ObjectId(id)
+      },
+      {
+        "$set": { users: players.length }
+      })
     })
 
     socket.on('group_leave', function(data) {
       if (!data.group) return 
       const id = data.group._id
-      let players = []
-
       if (groups[id]) {
-        if (groups[id].players[data.player.code]) {
-          groups[id].players[data.player.code].plying = true
+        if (groups[id].players[data.player._id]) {
           io.to(id).emit("group_leave", data.player)
-          console.log(`${data.player.code} leaves ${id} (now playing)`)
+          delete groups[id].players[data.player._id]
+          console.log(`${data.player.code} leaves ${groups[id].code}`)
         }
-        for (var i in groups[id].players) {
-          players.push(groups[id].players[i])
-        }
-      }
 
-      io.to(id).emit('players', players)
+        let players = groups[id].players
+        io.to(id).emit('players', players)
+
+        return db.collection('games').findOneAndUpdate(
+        {
+          '_id': new ObjectId(id)
+        },
+        {
+          "$set": { users: players.length }
+        })
+      }
     })
 
     socket.on('start', function(data) {
@@ -699,40 +730,27 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         "$set": item
       },{ new: true }).then(function(doc){
         io.to(id).emit('move', data)
-
-        const match = {}
-        for(var i in data){
-          match[i] = data[i]
-        }
-        match.white = doc.value.white
-        match.black = doc.value.black
-        io.emit('match_live', match)
+        io.emit('game', doc.value)
       })
     })
 
     socket.on('game', function(data) { //game object emitter
-      var item = {}
-      for(var i in data){
-        item[i] = data[i]
-      }
+      var id = data._id
+      data.updatedAt = moment().utc().format()
+      delete data._id 
 
-      var id = data.id
-      item.updatedAt = moment().utc().format()
-
-      delete item.id 
-      
       if (data.result && data.result !== '1/2-1/2') {
         var playerWin = data.result === '1-0'
         var elo = EloRating.calculate(data.whiteelo, data.blackelo, playerWin)
-        item.whiteelo = elo.playerRating
-        item.blackelo = elo.opponentRating
+        data.whiteelo = elo.playerRating
+        data.blackelo = elo.opponentRating
 
         if (groups[data.group]) {
-          if (groups[data.group].players[item.white]) {
-            groups[data.group].players[item.white].elo = item.whiteelo
+          if (groups[data.group].players[data.white]) {
+            groups[data.group].players[data.white].elo = data.whiteelo
           }
-          if (groups[data.group].players[item.black]) {
-            groups[data.group].players[item.black].elo = item.blackelo
+          if (groups[data.group].players[data.black]) {
+            groups[data.group].players[data.black].elo = data.blackelo
           }
         }
       }
@@ -742,7 +760,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         '_id': new ObjectId(id)
       },
       {
-        "$set": item
+        "$set": data
       },
       { 
         upsert: true, 
@@ -754,16 +772,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         io.to(id).emit('game_updated', game)
 
         if (data.result) {
-          for (var i = 0; i < matchesLive.length; i++) {
-            if (matchesLive[i].id === data.id) {
-              console.log(data.id + " match ends")
-              matchesLive.splice(i, 1)
-            }
-          }
-
-          setTimeout(() => {
-            io.emit('matches_live', matchesLive)
-          },10000)
+          io.emit('games', games.filter(e => { return e._id !== id }))
         }
       })
     })
