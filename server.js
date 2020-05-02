@@ -20,7 +20,7 @@ const mongo_url = process.env.MONGO_URL;
 var allowedOrigins = [
   'http://localhost:8080',
   'http://192.168.2.13:8080',
-  'https://biltz.herokuapp.com'
+  'https://flitz.herokuapp.com'
 ]
 
 app.use(cors({
@@ -455,7 +455,14 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           if(player.socket === socket.id){
             console.log(`${player.code} leaves group: ${groups[i].code}`)
             delete groups[i][j]
-            io.to(i).emit('players', groups[i])
+            db.collection('groups').findOneAndUpdate(
+            {
+              '_id': new ObjectId(i)
+            },
+            {
+              "$set": { users: Object.keys(groups[i].players).length }
+            })
+            io.to(i).emit('players', groups[i].players)
           }
         }        
       }      
