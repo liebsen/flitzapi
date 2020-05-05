@@ -177,27 +177,11 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
   })
 
   app.post('/game/save', function (req, res) { 
-    const doc = {      
-      site: 'AjedrezEV',
-      date: moment().format('YYYY.MM.DD HH:mm'),
-      white: req.body.white,
-      black: req.body.black,
-      result: req.body.result,
-      whiteflag: req.body.whiteflag,
-      blackflag: req.body.blackflag,
-      annotations: req.body.annotations,
-      score: req.body.score,
-      performance: req.body.performance,
-      orientation: req.body.orientation,
-      pgn: req.body.pgn,
-      views: 0
-    }
-
-    if (req.body.event) {
-      doc.event = req.body.event
-    }
-
-    db.collection('games').insertOne(doc,function (err, response) {
+    let body = req.body
+    body.site = 'Flitz'
+    body.date = moment().format('YYYY.MM.DD HH:mm')
+    body.views = 0
+    db.collection('games').insertOne(body, (err, response) => {
       if(err){ 
         console.log(err)
         return res.json({ status : 'error', message : 'Could not create game'})
@@ -207,19 +191,41 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     })
   })
 
-  app.post('/game', function (req, res) { 
+  app.post('/game', function (req, res) {
+    if (!req.body.id) {
+      return res.json({ status: 'error', message: 'error_game_nep' })
+    }
+    let id = req.body.id
+    var data = {}
     db.collection('games').find({
-      '_id': new ObjectId(req.body.id)
-    }).toArray(function(err,docs){
-      var data = {}
+      '_id': new ObjectId(id)
+    }).toArray((err, docs) => {
       if(docs[0]){
         data = docs[0]
+        db.collection('games')
+          .find({_id: {$gt: data._id}})
+          .sort({_id: 1 })
+          .limit(1)
+          .toArray((err, next) => {
+            if (next[0]) {
+              data.next = next[0]._id
+            }
+            db.collection('games')
+              .find({_id: {$lt: data._id}})
+              .sort({_id: -1 })
+              .limit(1)
+              .toArray((err, prev) => {
+                if (prev[0]) {
+                  data.prev = prev[0]._id
+                }
+                return res.json(data)
+              })
+          })
       }
-      return res.json(data)
-    })   
+    })
   })
 
-  app.post('/group', function (req, res) { 
+  app.post('/group', function (req, res) {
     db.collection('groups').find({
       '_id': new ObjectId(req.body.id)
     }).toArray(function(err,docs){
@@ -228,28 +234,28 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         data = docs[0]
       }
       return res.json(data)
-    })   
+    })
   })
 
-  app.post('/playlist', function (req, res) { 
+  app.post('/playlist', function (req, res) {
     var $or = []
-    , limit = 5
-    , offset = 0
+    var limit = 5
+    var offset = 0
 
-    for(var i in req.body){
-      $or.push({'black': {'$regex' : req.body.black, '$options' : 'i'}})  
-      $or.push({'white': {'$regex' : req.body.white, '$options' : 'i'}})  
-      $or.push({'black': {'$regex' : req.body.white, '$options' : 'i'}})  
-      $or.push({'white': {'$regex' : req.body.black, '$options' : 'i'}})  
+    for (var i in req.body) {
+      $or.push({'black': {'$regex' : req.body.black, '$options' : 'i'}})
+      $or.push({'white': {'$regex' : req.body.white, '$options' : 'i'}})
+      $or.push({'black': {'$regex' : req.body.white, '$options' : 'i'}})
+      $or.push({'white': {'$regex' : req.body.black, '$options' : 'i'}})
     }
 
     db.collection('games').find({"$or": $or})
-    .sort(gamesort)
-    .limit(limit)
-    .skip(offset)
-    .toArray(function(err,docs){
-      return res.json(docs)
-    })   
+      .sort(gamesort)
+      .limit(limit)
+      .skip(offset)
+      .toArray((err, docs) => {
+        return res.json(docs)
+      })   
   })
 
   app.post('/gamecount', function (req, res) { 
