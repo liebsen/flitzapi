@@ -185,7 +185,9 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       result: req.body.result,
       whiteflag: req.body.whiteflag,
       blackflag: req.body.blackflag,
+      annotations: req.body.annotations,
       score: req.body.score,
+      performance: req.body.performance,
       orientation: req.body.orientation,
       pgn: req.body.pgn,
       views: 0
@@ -371,6 +373,37 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           }
         }
       }
+    }
+
+    db.collection('games').countDocuments($find, function(error, numOfDocs){
+      db.collection('games').find($find)
+        .sort(gamesort)
+        .limit(limit)
+        .skip(offset)
+        .toArray(function(err,docs){
+          return res.json({games:docs,count:numOfDocs})
+        })   
+    })
+  })
+
+  app.post('/dash/search', function (req, res) { 
+    var limit = parseInt(req.body.limit)||25
+    , offset = parseInt(req.body.offset)||0
+    , query = unescape(req.body.query).trim()
+    , code = unescape(req.body.code).trim()
+    , strict = unescape(req.body.strict).trim()
+
+    let $find = {}
+
+    $find.$or = []
+    $find.$or.push({"white": code})
+    $find.$or.push({"black": code})
+
+    if(query.length){
+      $find.$or.push({"white": code})
+      $find.$or.push({"black": code})
+      $find.$or.push({"white": query})
+      $find.$or.push({"black": query})
     }
 
     db.collection('games').countDocuments($find, function(error, numOfDocs){
