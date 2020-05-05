@@ -1,4 +1,10 @@
 {
+  "game_draw": "Esta partida finalizó en tablas",
+  "save_game": "Guardar esta partida",
+  "play_again": "Play again",
+  "you_defeat_stockfish": "You win",
+  "stockfish_won": "Stockfish won the game",
+  "stockfish_ask_play_again": "Do you want to play again?",
   "terms_icon": "copyright",
   "terms_title": "Terms and conditions",
   "terms_content": "Copying and distribution of this file, with or without modification, are permitted in any medium without royalty, provided the copyright notice and this notice are preserved. This file is offered as-is, without any warranty.",
