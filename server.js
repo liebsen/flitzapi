@@ -596,6 +596,14 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         io.emit('player', data)
       })
     })
+    
+    socket.on('playing', function (data) {
+      let count = 0
+      for (var i in groups) {
+        count += Object.keys(groups[i].players).length
+      }
+      io.emit('playing', count)
+    })
 
     socket.on('find_opponent', function (data) { 
       let item = {}
@@ -691,6 +699,14 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       socket.join(id)
       io.to(id).emit("group_join", data.player)
       io.to(id).emit('players', groups[id].players)
+
+      let count = 0
+      for (var i in groups) {
+        count += Object.keys(groups[i].players).length
+      }
+
+      io.emit('playing', count)
+
       return db.collection('groups').findOneAndUpdate(
       {
         '_id': new ObjectId(id)
@@ -711,6 +727,14 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         }
 
         io.to(id).emit('players', groups[id].players)
+
+        let count = 0
+        for (var i in groups) {
+          count += Object.keys(groups[i].players).length
+        }
+
+        io.emit('playing', count)
+
         return db.collection('groups').findOneAndUpdate(
         {
           '_id': new ObjectId(id)
