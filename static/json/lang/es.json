@@ -1,4 +1,11 @@
 {
+  "group_not_found": "Este grupo no existe",
+  "group_not_found_text": "No pudimos encontrar el grupo que nos pediste",
+  "create_group_invitation": "Si creés que debería existir entonces...",
+  "create_it": "créalo",
+  "contact_icon": "email",
+  "contact_title": "Contacto",
+  "contact_content": "<p> Puedes contactar con Flitz de las siguientes formas: </p><h5>Email</h5><p>Envíame un correo electrónico <a href='mailto:overlemonsoft@gmail.com'> overlemonsoft [at] gmail.com </a> </p><h5>Flitz</h5><p>Generalmente estoy online en este grupo <a href='/group/5eb2dfab58c3d200179e7d53'>FlitzDev</a> </p>",
   "donate_icon": "human-handsup",
   "donate_title": "Donar a Flitz",
   "donate_content": "<h3> ¿Te gustó Flitz? </h3> <div class = 'notificación'> Si realmente te gusta Flitz, haz una donación para mantener vivo el proyecto </div> <p> Este proyecto está siendo desarrollado y es mantenido por solamente una persona. Cualquier ayuda será muy apreciada. Gracias por jugar ajedrez en Flitz. Si desea saber más sobre el proyecto, envíeme un correo electrónico <a href='mailto:overlemonsoft@gmail.com'> overlemonsoft [at] gmail.com </a> </p><p><a href='https://www.paypal.me/overlemon' target='_blank' class='button is-success is-rounded'>Donar a Flitz</a></p>",

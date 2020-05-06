@@ -1,4 +1,11 @@
 {
+  "group_not_found": "Group not found",
+  "group_not_found_text": "We couldn't find any group like this",
+  "create_group_invitation": "If you believe it should exists then...",
+  "create_it": "create it",
+  "contact_icon": "email",
+  "contact_title": "Contact",
+  "contact_content": "<p> You can keep in touch with Flitz with at least one of the following methods: </p><h5>Email</h5><p>Drop lines to <a href='mailto:overlemonsoft@gmail.com'> overlemonsoft [at] gmail.com </a> </p><h5>Flitz</h5><p>Or, if you want we can chat at <a href='/group/5eb2dfab58c3d200179e7d53'>FlitzDev</a>. I'm usually connected.</p>",
   "donate_icon": "human-handsup",
   "donate_title": "Donate to Flitz",
   "donate_content": "<h3>Did you like Flitz?</h3><div class='notification'>If you really like Flitz please make a donation to keep the project living</div><p>This project is being developed and is maintained by only one person. Any help will be very appretiated. Thank you for playing chess on Flitz.  If you want to know more about the project please send me an email <a href='mailto:overlemonsoft@gmail.com'>overlemonsoft[at]gmail.com</a></p><p><a href='https://www.paypal.me/overlemon' target='_blank' class='button is-success is-rounded'>Donate to Flitz</a></p>",

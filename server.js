@@ -1,12 +1,13 @@
 const fs = require('fs')
-var express = require('express');
-var path = require('path');
-var app = express();
-var cors = require('cors');
-var http = require('http').Server(app);
-var io = require('socket.io')(http, { origins: '*:*', pingInterval: 15000});
-var moment = require('moment');
-var mongodb = require('mongodb');
+var express = require('express')
+var path = require('path')
+var app = express()
+var cors = require('cors')
+var http = require('http').Server(app)
+var io = require('socket.io')(http, { origins: '*:*', pingInterval: 15000})
+var moment = require('moment')
+var mongodb = require('mongodb')
+const bcrypt = require('bcrypt')
 var expressLayouts = require('express-ejs-layouts')
 var bodyParser = require('body-parser')
 var EloRating = require('elo-rating')
@@ -16,12 +17,15 @@ var groups = {}
 var games = {}
 var movecompensation = 2
 var ObjectId = require('mongodb').ObjectId
-const mongo_url = process.env.MONGO_URL;
+const mongo_url = process.env.MONGO_URL
 var allowedOrigins = [
   'http://localhost:8080',
   'http://192.168.2.13:8080',
   'https://flitz.herokuapp.com'
 ]
+const tokenExpires = 86400 * 30 * 12 // 1 year
+const saltRounds = 10
+
 
 app.use(cors({
   origin: function(origin, callback){
@@ -57,6 +61,33 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     res.render('index')
   });
 
+  app.post('/register', function (req, res) { 
+    let password = req.body.password
+    if (!password) {
+      return res.json({ status: 'error', message: 'no_password_given'})
+    }
+
+    bcrypt.hash(password, saltRounds, function (err, hash) {
+      db.collection('accounts').findOneAndUpdate({
+        _id: new ObjectId(req.body._id)
+      },
+      {
+        "$set": {
+          code: req.body.code,
+          password: hash,
+          email: req.body.email,
+          updatedAt: moment().utc().format()
+        }
+      },{ 
+        upsert: true, 
+        'new': true, 
+        returnOriginal:false 
+      }).then(function(data) {
+        return res.json(data.value)
+      })
+    })
+  })
+
   app.post('/group/create', function (req, res) { 
     const doc = {
       code: req.body.code,
@@ -80,7 +111,6 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       }
     })
   })
-
 
   app.get('/test', function (req, res) {
     let data = {
