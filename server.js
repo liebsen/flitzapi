@@ -734,7 +734,6 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         }
 
         io.emit('playing', count)
-
         return db.collection('groups').findOneAndUpdate(
         {
           '_id': new ObjectId(id)
