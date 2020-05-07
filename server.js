@@ -26,6 +26,23 @@ var allowedOrigins = [
 const tokenExpires = 86400 * 30 * 12 // 1 year
 const saltRounds = 10
 
+var playing = () => {
+  let total = 0
+  let playing = 0
+  for (var i in groups) {
+    total += Object.keys(groups[i].players).length
+    for (var j in groups[i].players) {
+      if (groups[i].players[j].plying) {
+        playing++
+       }
+    }
+  }
+
+  return {
+    idle: (total - playing), 
+    playing: playing
+  }
+}
 
 app.use(cors({
   origin: function(origin, callback){
@@ -628,11 +645,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     })
     
     socket.on('playing', function (data) {
-      let count = 0
-      for (var i in groups) {
-        count += Object.keys(groups[i].players).length
-      }
-      io.emit('playing', count)
+      io.emit('playing', playing())
     })
 
     socket.on('find_opponent', function (data) { 
@@ -730,12 +743,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       io.to(id).emit("group_join", data.player)
       io.to(id).emit('players', groups[id].players)
 
-      let count = 0
-      for (var i in groups) {
-        count += Object.keys(groups[i].players).length
-      }
-
-      io.emit('playing', count)
+      io.emit('playing', playing())
 
       return db.collection('groups').findOneAndUpdate(
       {
@@ -758,12 +766,8 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
         io.to(id).emit('players', groups[id].players)
 
-        let count = 0
-        for (var i in groups) {
-          count += Object.keys(groups[i].players).length
-        }
+        io.emit('playing', playing())
 
-        io.emit('playing', count)
         return db.collection('groups').findOneAndUpdate(
         {
           '_id': new ObjectId(id)
