@@ -536,21 +536,24 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     socket.on('disconnect', function() {
       console.log("disconnect")
       for (var i in groups) {
-        for (var j in groups[i]){
-          const player = groups[i][j]
-          if(player.socket === socket.id){
-            console.log(`${player.code} leaves group: ${groups[i].code}`)
-            delete groups[i][j]
-            db.collection('groups').findOneAndUpdate(
-            {
-              '_id': new ObjectId(i)
-            },
-            {
-              "$set": { users: Object.keys(groups[i].players).length }
-            })
-            io.to(i).emit('players', groups[i].players)
-          }
-        }        
+        console.log(groups[i].players)
+        if (groups[i].players) {
+          groups[i].players.map(e => {
+            if(e.socket === socket.id){
+              console.log(`${e.code} leaves group: ${groups[i].code}`)
+              delete groups[i].players[j]
+
+              db.collection('groups').findOneAndUpdate(
+              {
+                '_id': new ObjectId(i)
+              },
+              {
+                "$set": { users: Object.keys(groups[i].players).length }
+              })
+              io.to(i).emit('players', groups[i].players)
+            }
+          })
+        }
       }      
     })
 
