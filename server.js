@@ -537,7 +537,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       console.log("disconnect")
       for (var i in groups) {
         console.log(groups[i].players)
-        if (groups[i].players) {
+        if (Object.keys(groups[i].players).length) {
           groups[i].players.map(e => {
             if(e.socket === socket.id){
               console.log(`${e.code} leaves group: ${groups[i].code}`)
