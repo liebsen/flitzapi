@@ -837,10 +837,12 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
     socket.on('game', function(data) { //game object emitter
       var id = data._id
+      var updateElo = false
       data.updatedAt = moment().utc().format()
       delete data._id 
 
       if (data.result && data.result !== '1/2-1/2') {
+        updateElo = true
         var playerWin = data.result === '1-0'
 
         console.log('whiteelo: ' + data.whiteelo)
@@ -880,6 +882,56 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
         if (data.result) {
           io.emit('games', Object.keys(games).filter((e, i) => { return i !== id }))
+        }
+
+        if (updateElo) {
+          let $push_query = []
+          $push_query.push({
+            elo: data.whiteelo,
+            updateAt: new Date()
+          })
+          return db.collection('accounts').findOneAndUpdate({
+            code: data.white,
+          }, {
+            "$set": {
+              elo: data.whiteelo
+            },
+            "$push": {
+              eloUpdates: { "$each": $push_query }
+            }
+          }).then(function(white){
+            if(white.value) {
+              if (groups[data.group]) {
+                if (groups[data.group].players[white._id]) {
+                  groups[data.group].players[white._id].elo = data.whiteelo
+                }
+              }
+            }
+
+            let $push_query = []
+            $push_query.push({
+              elo: data.blackelo,
+              updateAt: new Date()
+            })
+            return db.collection('accounts').findOneAndUpdate({
+              code: data.black,
+            }, {
+              "$set": {
+                elo: data.blackelo
+              },
+              "$push": {
+                eloUpdates: { "$each": $push_query }
+              }
+            }).then(function(black){
+              if(black.value) {
+                if (groups[data.group]) {
+                  if (groups[data.group].players[black._id]) {
+                    groups[data.group].players[black._id].elo = data.blackelo
+                  }
+                }
+              }
+            })
+          })
         }
       })
     })

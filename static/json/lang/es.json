@@ -1,4 +1,6 @@
 {
+  "timeFormat": "YYYY[.]M[.]D HH:mm",
+  "name": "Nombre",
   "group_not_found": "Este grupo no existe",
   "group_not_found_text": "No pudimos encontrar el grupo que nos pediste",
   "create_group_invitation": "Si creés que debería existir entonces...",
