@@ -1,4 +1,8 @@
 {
+  "show_all": "Mostrar todo",
+  "powered_by": "Potenciado por",
+  "saved": "Guardado",
+  "stockfish_saved": "La partida contra Stockfish fue guardada",
   "timeFormat": "YYYY[.]M[.]D HH:mm",
   "name": "Nombre",
   "group_not_found": "Este grupo no existe",

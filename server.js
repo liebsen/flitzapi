@@ -536,9 +536,11 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     socket.on('disconnect', function() {
       console.log("disconnect")
       for (var i in groups) {
-        console.log(groups[i].players)
+        console.log(groups[i])
         if (Object.keys(groups[i].players).length) {
-          groups[i].players.map(e => {
+          if (groups[i].players)
+          Object.keys(groups[i].players).map(j => {
+            let e = groups[i].players[j]
             if(e.socket === socket.id){
               console.log(`${e.code} leaves group: ${groups[i].code}`)
               delete groups[i].players[j]
@@ -568,7 +570,6 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         // io.emit('games', games)
 
         for(var i in groups){
-          console.log('c')
           for(var j in groups[i].players) {
             if (groups[i].players[j]._id === data.player._id) {
               groups[i].players[j].plying = true
@@ -659,7 +660,6 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         Object.keys(groups[id].players).forEach(i => {
           let player = groups[id].players[i]
           if (player.code !== data.player.code && !player.plying && !player.observe) {
-            console.log('found group game')
             event = groups[id].code
             item = groups[id]
             item.player = player
@@ -672,7 +672,6 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           Object.keys(groups[i].players).forEach(j => {
             let player = groups[i].players[j]
             if (player.code !== data.player.code && player.autoaccept && !player.observe && !player.plying) {
-              console.log('found outside game')
               item = groups[i]
               item.player = player
             }
