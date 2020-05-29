@@ -715,7 +715,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           if(err){ 
             io.emit('opponent_not_found') 
           } else {
-            io.emit('opponent_not_found') 
+            console.log('game_spawn') 
             io.emit('game_spawn', {
               group: item._id,
               match: match_id,
