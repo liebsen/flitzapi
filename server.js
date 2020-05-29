@@ -653,13 +653,16 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     })
 
     socket.on('find_opponent', function (data) { 
+      console.log('find_opponent 1')
       let item = {}
       let event = 'landing'
       let id = data.group
       if (groups[id]) {
         Object.keys(groups[id].players).forEach(i => {
           let player = groups[id].players[i]
+          console.log('find_opponent 2')
           if (player.code !== data.player.code && !player.plying && !player.observe) {
+            console.log('find_opponent 3')
             event = groups[id].code
             item = groups[id]
             item.player = player
@@ -712,6 +715,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           if(err){ 
             io.emit('opponent_not_found') 
           } else {
+            io.emit('opponent_not_found') 
             io.emit('game_spawn', {
               group: item._id,
               match: match_id,
@@ -723,6 +727,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         })
       } else {
         io.emit('opponent_not_found') 
+        console.log('opponent_not_found')
       }      
     })
 
@@ -840,8 +845,13 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     socket.on('game', function(data) { //game object emitter
       var id = data._id
       var updateElo = false
+      var event = ''
       data.updatedAt = moment().utc().format()
       delete data._id 
+
+      if (!data.event) {
+        data.event = groups[id].code
+      }
 
       if (data.result && data.result !== '1/2-1/2') {
         updateElo = true
