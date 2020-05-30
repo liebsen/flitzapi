@@ -18,13 +18,13 @@ var games = {}
 var movecompensation = 2
 var ObjectId = require('mongodb').ObjectId
 const mongo_url = process.env.MONGO_URL
+const tokenExpires = 86400 * 30 * 12 // 1 year
+const saltRounds = 10
 var allowedOrigins = [
   'http://localhost:8080',
   'http://192.168.2.13:8080',
   'https://flitz.herokuapp.com'
 ]
-const tokenExpires = 86400 * 30 * 12 // 1 year
-const saltRounds = 10
 
 var playing = () => {
   let total = 0
@@ -57,10 +57,10 @@ app.use(cors({
 }))
 
 app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
+  res.header("Access-Control-Allow-Origin", "*") // update to match the domain you will make the request from
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+  next()
+})
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json({ type: 'application/json' }))
@@ -76,7 +76,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
   app.get('/', function (req, res) {
     res.render('index')
-  });
+  })
 
   app.post('/register', function (req, res) { 
     let password = req.body.password
@@ -135,6 +135,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       white: 'white',
       score: '1'
     }
+
     let $push_query = []
     $push_query.push(data)
     db.collection('groups').findOneAndUpdate(
@@ -649,6 +650,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     })
     
     socket.on('playing', function (data) {
+      console.log('playing')
       io.emit('playing', playing())
     })
 
