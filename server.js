@@ -534,6 +534,8 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
   })
 
   io.on('connection', function(socket){ //join group on connect
+    console.log('connect')
+    console.log(socket.id)
     socket.on('disconnect', function() {
       console.log("disconnect")
       for (var i in groups) {
