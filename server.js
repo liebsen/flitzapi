@@ -21,9 +21,11 @@ const mongo_url = process.env.MONGO_URL
 const tokenExpires = 86400 * 30 * 12 // 1 year
 const saltRounds = 10
 var allowedOrigins = [
+  'http://localhost:4000',
   'http://localhost:8080',
   'http://192.168.2.13:8080',
-  'https://flitz.herokuapp.com'
+  'https://flitz.herokuapp.com',
+  'https://flitzapi.herokuapp.com'
 ]
 
 var playing = () => {
@@ -653,6 +655,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     
     socket.on('playing', function (data) {
       console.log('playing')
+      io.emit('testing', {status: 'success'})
       io.emit('playing', playing())
     })
 
@@ -730,7 +733,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           }
         })
       } else {
-        io.emit('opponent_not_found') 
+        io.to(socket.id).emit('opponent_not_found') 
         console.log('opponent_not_found')
       }      
     })
