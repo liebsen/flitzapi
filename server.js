@@ -857,15 +857,14 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       delete data._id 
 
       if (!data.event) {
-        data.event = groups[id].code
+        if (groups[data.group]) {
+          data.event = groups[data.group].code
+        }
       }
 
       if (data.result && data.result !== '1/2-1/2') {
         updateElo = true
         var playerWin = data.result === '1-0'
-
-        console.log('whiteelo: ' + data.whiteelo)
-        console.log('blackelo: ' + data.blackelo)
 
         if (data.whiteelo && data.blackelo) {
           var elo = EloRating.calculate(data.whiteelo, data.blackelo, playerWin)

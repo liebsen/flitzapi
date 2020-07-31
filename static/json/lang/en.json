@@ -1,4 +1,5 @@
 {
+  "slowpieceanim": "Slow animation for pieces",
   "show_all": "Show all",
   "powered_by": "Powered by",
   "stockfish_saved": "Game successfully saved",
@@ -30,7 +31,7 @@
   "burled_wood": "Burled wood",
   "dark_wood": "Dark wood",
   "green_plastic": "Green plastic",
-  "opponent_not_found": "No opponents found",
+  "opponent_not_found": "No opponents found. You can play with Stockfish in the meanwhile.",
   "resource_not_found": "Resource not found",
   "resource_not_found_text": "Unfortunately we could not find what you are looking for",
   "already_loggedin": "You are already registered and logged in as ",
