@@ -276,12 +276,15 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
   })
 
   app.post('/group', function (req, res) {
+    let dateLimit = moment().subtract(14, 'days')
     db.collection('groups').find({
       '_id': new ObjectId(req.body.id)
     }).toArray(function(err,docs){
       var data = {}
       if(docs[0]){
         data = docs[0]
+        data.chat = data.chat.filter(e => moment(e.created).format('x') > dateLimit)
+        data.results = data.results.filter(e => moment(e.date, 'YYYY.MM.DD').format('x') > dateLimit)
       }
       return res.json(data)
     })
@@ -536,16 +539,17 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
   })
 
   io.on('connection', function(socket){ //join group on connect
-    console.log('connect')
-    console.log(socket.id)
     socket.on('disconnect', function() {
       console.log("disconnect")
       for (var i in groups) {
-        console.log(groups[i])
+        console.log('disconnect1')
         if (Object.keys(groups[i].players).length) {
-          if (groups[i].players)
+          console.log('disconnect2')
           Object.keys(groups[i].players).map(j => {
             let e = groups[i].players[j]
+            console.log('disconnect2')
+            console.log(e)
+            console.log(e.socket+' '+socket.id)
             if(e.socket === socket.id){
               console.log(`${e.code} leaves group: ${groups[i].code}`)
               delete groups[i].players[j]
@@ -654,22 +658,19 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
     })
     
     socket.on('playing', function (data) {
-      console.log('playing')
       io.emit('testing', {status: 'success'})
       io.emit('playing', playing())
     })
 
     socket.on('find_opponent', function (data) { 
-      console.log('find_opponent 1')
       let item = {}
       let event = 'landing'
       let id = data.group
       if (groups[id]) {
         Object.keys(groups[id].players).forEach(i => {
           let player = groups[id].players[i]
-          console.log('find_opponent 2')
+          player.socket = socket.id
           if (player.code !== data.player.code && !player.plying && !player.observe) {
-            console.log('find_opponent 3')
             event = groups[id].code
             item = groups[id]
             item.player = player
@@ -681,6 +682,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
         Object.keys(groups).forEach(i => {
           Object.keys(groups[i].players).forEach(j => {
             let player = groups[i].players[j]
+            player.socket = socket.id
             if (player.code !== data.player.code && player.autoaccept && !player.observe && !player.plying) {
               item = groups[i]
               item.player = player
@@ -722,7 +724,6 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
           if(err){ 
             io.emit('opponent_not_found') 
           } else {
-            console.log('game_spawn') 
             io.emit('game_spawn', {
               group: item._id,
               match: match_id,
@@ -748,6 +749,7 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       }
 
       if(!groups[id].players[data.player._id]) {
+        data.player.socket = socket.id
         groups[id].players[data.player._id] = data.player
         console.log(`${data.player.code} joins ${groups[id].code}`)
       }
