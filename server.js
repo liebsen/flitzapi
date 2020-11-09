@@ -283,8 +283,8 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
       var data = {}
       if(docs[0]){
         data = docs[0]
-        data.chat = data.chat.filter(e => moment(e.created).format('x') > dateLimit)
-        data.results = data.results.filter(e => moment(e.date, 'YYYY.MM.DD').format('x') > dateLimit)
+        data.chat = data.chat ? data.chat.filter(e => moment(e.created).format('x') > dateLimit) : []
+        data.results = data.results ? data.results.filter(e => moment(e.date, 'YYYY.MM.DD').format('x') > dateLimit) : []
       }
       return res.json(data)
     })
