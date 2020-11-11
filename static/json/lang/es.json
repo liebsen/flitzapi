@@ -1,6 +1,12 @@
 {
   "group_no_results": "No se encontraron resultados",
   "level": "nivel",
+  "level_0": "Niño",
+  "level_1": "Novato",
+  "level_2": "Principiante",
+  "level_3": "Intermedio",
+  "level_4": "Avanzado",
+  "level_5": "Gran Maestro",
   "slowpieceanim": "Animación lenta de piezas",
   "show_all": "Mostrar todo",
   "powered_by": "Potenciado por",
