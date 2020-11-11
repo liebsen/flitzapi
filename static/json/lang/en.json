@@ -1,4 +1,7 @@
 {
+  "restart_match": "Restart match",
+  "restart_match_ask": "Do you want to play again?",
+  "play_against_stockfish": "Play against Stockfish",
   "type_your_message": "Type your message",
   "group_no_results": "No results found",
   "slowpieceanim": "Slow animation",

@@ -1,4 +1,7 @@
 {
+  "restart_match": "Reiniciar partida",
+  "restart_match_ask": "¿Querés reiniciar esta partida?",
+  "play_against_stockfish": "Jugar contra Stockfish",
   "type_your_message": "Ingresa tu mensaje",
   "group_no_results": "No se encontraron resultados",
   "level": "nivel",
