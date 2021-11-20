@@ -540,16 +540,10 @@ mongodb.MongoClient.connect(mongo_url, { useUnifiedTopology: true, useNewUrlPars
 
   io.on('connection', function(socket){ //join group on connect
     socket.on('disconnect', function() {
-      console.log("disconnect")
       for (var i in groups) {
-        console.log('disconnect1')
         if (Object.keys(groups[i].players).length) {
-          console.log('disconnect2')
           Object.keys(groups[i].players).map(j => {
             let e = groups[i].players[j]
-            console.log('disconnect2')
-            console.log(e)
-            console.log(e.socket+' '+socket.id)
             if(e.socket === socket.id){
               console.log(`${e.code} leaves group: ${groups[i].code}`)
               delete groups[i].players[j]
